@@ -4,10 +4,11 @@ import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface TodoDao {
-    @Query("SELECT * FROM Todo")
+    @Query("SELECT * FROM Todo ORDER BY createdAt")
     fun getAllTodo(): LiveData<List<Todo>>
 
     @Insert
@@ -15,4 +16,7 @@ interface TodoDao {
 
     @Query("DELETE FROM Todo WHERE id = :id")
     fun deleteTodo(id: Int)
+
+    @Update
+    fun updateTodo(todo: Todo)
 }

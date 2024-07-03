@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mukto.todo.MainApplication
 import com.mukto.todo.db.Todo
+import com.mukto.todo.db.TodoDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -31,9 +32,12 @@ class TodoViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             todoDao.deleteTodo(id)
         }
+    }
 
-
-
+    fun updateTodo(todo : Todo){
+        viewModelScope.launch(Dispatchers.IO) {
+            todoDao.updateTodo(todo)
+        }
     }
 
 }
