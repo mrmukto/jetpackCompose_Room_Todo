@@ -9,7 +9,7 @@ data class Expense(
     @PrimaryKey(autoGenerate = true)
     var id: Int = 0,
     var amount: Double,
-    var description: String,
+    val description: String?=null,
     var date: Date,
     val category: String? = null// Optional: You can use this field to categorize expenses
 )

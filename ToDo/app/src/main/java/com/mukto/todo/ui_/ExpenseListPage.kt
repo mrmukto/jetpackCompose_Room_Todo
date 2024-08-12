@@ -15,10 +15,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +53,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ExpenseListPage(viewModel: ExpenseViewModel) {
@@ -59,9 +66,13 @@ fun ExpenseListPage(viewModel: ExpenseViewModel) {
     // Input fields and dialog state
     var inputAmount by remember { mutableStateOf("") }
     var inputDescription by remember { mutableStateOf("") }
-    var inputCategory by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("") }
+    var customCategory by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var selectedExpense by remember { mutableStateOf<Expense?>(null) }
+    val categories = listOf("Transport", "Home Expense", "Others")
+
 
     Box(
         modifier = Modifier
@@ -101,17 +112,15 @@ fun ExpenseListPage(viewModel: ExpenseViewModel) {
             } else {
                 LazyColumn(content = {
                     itemsIndexed(expenseList) { index: Int, item: Expense ->
-                        ExpenseItem(
-                            item = item,
+                        ExpenseItem(item = item,
                             onDelete = { viewModel.deleteExpense(item.id) },
                             onUpdate = {
                                 selectedExpense = item
                                 inputAmount = item.amount.toString()
-                                inputDescription = item.description
-                                inputCategory = item.category.orEmpty()
+                                inputDescription = item.description.orEmpty()
+                                selectedCategory = item.category.orEmpty()
                                 showDialog = true
-                            }
-                        )
+                            })
                     }
                 })
             }
@@ -123,10 +132,10 @@ fun ExpenseListPage(viewModel: ExpenseViewModel) {
                 selectedExpense = null
                 inputAmount = ""
                 inputDescription = ""
-                inputCategory = ""
+                selectedCategory = ""
+                customCategory = ""
                 showDialog = true
-            },
-            modifier = Modifier
+            }, modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
@@ -137,6 +146,7 @@ fun ExpenseListPage(viewModel: ExpenseViewModel) {
         if (showDialog) {
             var amountError by rememberSaveable { mutableStateOf<String?>(null) }
             var descriptionError by rememberSaveable { mutableStateOf<String?>(null) }
+            var categoryError by rememberSaveable { mutableStateOf<String?>(null) }
 
             // Validation for the input fields
             amountError = when {
@@ -144,80 +154,110 @@ fun ExpenseListPage(viewModel: ExpenseViewModel) {
                 inputAmount.toDoubleOrNull() == null -> "Invalid amount."
                 else -> null
             }
+            categoryError = when {
+                customCategory.isBlank() && selectedCategory.isBlank() -> "Please enter a category or select from dropdown."
+                else -> null
+            }
             descriptionError = when {
                 inputDescription.isBlank() -> "Please enter a description."
                 inputDescription.length < 2 -> "Description is too short."
                 else -> null
             }
-
-            AlertDialog(
-                onDismissRequest = { showDialog = false },
+            val finalCategory =
+                if (customCategory.isNotEmpty()) customCategory else selectedCategory
+            AlertDialog(onDismissRequest = { showDialog = false },
                 title = { Text(text = if (selectedExpense == null) "Add Expense" else "Update Expense") },
                 text = {
                     Column {
-                        OutlinedTextField(
-                            value = inputAmount,
+                        OutlinedTextField(value = inputAmount,
                             onValueChange = { inputAmount = it },
                             label = { Text("Amount") },
-                            supportingText = { Text(text = amountError.orEmpty()) }
-                        )
+                            supportingText = { Text(text = amountError.orEmpty()) },
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                keyboardType = KeyboardType.Number
+                            ))
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = inputDescription,
+                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = {
+                            expanded = !expanded
+                        }) {
+                            OutlinedTextField(value = finalCategory,
+                                onValueChange = { input ->
+                                    customCategory = input
+                                    selectedCategory = ""
+                                },
+                                label = { Text("Category") },
+                                supportingText = { Text(text = categoryError.orEmpty()) },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth(),
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = expanded
+                                    )
+                                },
+                                singleLine = true,
+                                readOnly = customCategory.isEmpty()
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }) {
+                                categories.forEach { category ->
+                                    DropdownMenuItem(onClick = {
+                                        selectedCategory = category
+                                        customCategory = ""
+                                        expanded = false
+                                    }, text = { Text(category) })
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(value = inputDescription,
                             onValueChange = { inputDescription = it },
-                            label = { Text("Description") },
-                            supportingText = { Text(text = descriptionError.orEmpty()) }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = inputCategory,
-                            onValueChange = { inputCategory = it },
-                            label = { Text("Category (Optional)") }
-                        )
+                            label = { Text("Description (Optional)") },
+                            supportingText = { Text(text = descriptionError.orEmpty()) })
+
                     }
                 },
                 confirmButton = {
-                    Button(
-                        enabled = amountError == null && descriptionError == null,
+                    Button(enabled = amountError == null && categoryError == null && finalCategory.isNotBlank(),
                         onClick = {
-                            val amount = inputAmount.toDoubleOrNull() ?: 0.0
                             if (selectedExpense == null) {
                                 viewModel.addExpense(
-                                    amount = amount,
-                                    description = inputDescription,
-                                    category = inputCategory.ifBlank { null }
+                                    amount = inputAmount.toDouble(),
+                                    description = inputDescription.ifBlank { null },
+                                    category = finalCategory.toString()
                                 )
                             } else {
                                 viewModel.updateExpense(
                                     selectedExpense!!.copy(
-                                        amount = amount,
+                                        amount = inputAmount.toDouble(),
                                         description = inputDescription,
-                                        category = inputCategory.ifBlank { null }
+                                        category = finalCategory.toString()
                                     )
                                 )
                             }
                             showDialog = false
                             inputAmount = ""
                             inputDescription = ""
-                            inputCategory = ""
-                        }
-                    ) {
+                            selectedCategory = ""
+                            customCategory = ""
+                        }) {
                         Text("Save")
                     }
                 },
                 dismissButton = {
-                    Button(
-                        onClick = {
-                            showDialog = false
-                            inputAmount = ""
-                            inputDescription = ""
-                            inputCategory = ""
-                        }
-                    ) {
+                    Button(onClick = {
+                        showDialog = false
+                        inputAmount = ""
+                        inputDescription = ""
+                        selectedCategory = ""
+                        customCategory = ""
+                    }) {
                         Text("Cancel")
                     }
-                }
-            )
+                })
         }
     }
 }
@@ -246,16 +286,15 @@ fun ExpenseItem(item: Expense, onDelete: () -> Unit, onUpdate: () -> Unit) {
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
-            Text(
-                text = item.description,
-                fontSize = 14.sp,
-                color = Color.Yellow
-            )
+
             item.category?.let {
                 Text(
-                    text = it,
-                    fontSize = 12.sp,
-                    color = Color.Cyan
+                    text = it, fontSize = 12.sp, color = Color.Cyan
+                )
+            }
+            item.description?.let {
+                Text(
+                    text = it, fontSize = 14.sp, color = Color.Yellow
                 )
             }
         }

@@ -10,6 +10,7 @@ activityCompose = "1.9.0"
 composeBom = "2023.08.00"
 runtimeLivedata = "1.6.7"
 ksp = "1.9.0-1.0.13"
+lifecycle = "2.6.1" # Replace with the correct version
 
 
 [libraries]
@@ -28,6 +29,8 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
+androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 
 
 [plugins]
